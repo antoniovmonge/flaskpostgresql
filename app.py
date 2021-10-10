@@ -2,6 +2,7 @@ import os
 from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
+from send_mail import send_mail
 
 load_dotenv()
 
@@ -50,7 +51,16 @@ def submit():
         if customer == '' or dealer == '':
             message='Please enter required fields'
             return render_template('index.html', message=message)
-        return render_template('success.html')
+        
+        if db.session.query(Feedback)\
+            .filter(Feedback.customer == customer).count() == 0:
+            data = Feedback(customer, dealer, rating, comments)
+            db.session.add(data)
+            db.session.commit()
+            send_mail(customer, dealer, rating, comments)
+            return render_template('success.html')
+        return render_template('index.html',
+                                message='You have already submitted feedback')
 
 
 if __name__ == '__main__':
